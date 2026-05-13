@@ -48,7 +48,7 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <Border Grid.RowSpan="4"
@@ -135,7 +135,9 @@
                         Height="1"
                         Background="#231015" />
 
-                <StackPanel Grid.Row="3">
+                <StackPanel Grid.Row="3"
+                            VerticalAlignment="Center"
+                            Margin="0,1,0,2">
                     <Button x:Name="CleanRamButton"
                             Margin="0,0,0,4"
                             Style="{StaticResource StateButtonStyle}"

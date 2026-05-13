@@ -1,5 +1,5 @@
 param(
-    [string]$Version = "0.1.0",
+    [string]$Version = "0.1.4",
     [string]$Runtime = "win-x64"
 )
 
@@ -11,6 +11,7 @@ $artifactsRoot = Join-Path $repoRoot "artifacts"
 $publishDir = Join-Path $repoRoot "src\RamGuardian.App\bin\Release\net8.0-windows\$Runtime\publish"
 $stageDir = Join-Path $artifactsRoot "RamGuardian-$Version-$Runtime"
 $zipPath = Join-Path $artifactsRoot "RamGuardian-$Version-$Runtime.zip"
+$rootExePath = Join-Path $repoRoot "RamGuardian.exe"
 
 if (Test-Path $stageDir) {
     Remove-Item -LiteralPath $stageDir -Recurse -Force
@@ -35,9 +36,11 @@ if ($LASTEXITCODE -ne 0) {
 
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 Copy-Item -Path (Join-Path $publishDir "*") -Destination $stageDir -Recurse -Force
+Copy-Item -LiteralPath (Join-Path $publishDir "RamGuardian.exe") -Destination $rootExePath -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination (Join-Path $stageDir "README.md")
 Copy-Item -LiteralPath (Join-Path $repoRoot "LICENSE") -Destination (Join-Path $stageDir "LICENSE")
 
 Compress-Archive -Path (Join-Path $stageDir "*") -DestinationPath $zipPath -CompressionLevel Optimal
 
 Write-Output "Release package created: $zipPath"
+Write-Output "Root executable updated: $rootExePath"

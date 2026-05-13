@@ -4,6 +4,7 @@ public sealed record CleanupPlan(
     CleanupMode Mode,
     bool PurgeLowPriorityStandby,
     bool PurgeStandby,
+    bool FlushModifiedList,
     bool TrimBackgroundWorkingSets,
     bool TrimSystemWorkingSets,
     string Reason,
@@ -14,6 +15,7 @@ public sealed record CleanupPlan(
             CleanupMode.None,
             PurgeLowPriorityStandby: false,
             PurgeStandby: false,
+            FlushModifiedList: false,
             TrimBackgroundWorkingSets: false,
             TrimSystemWorkingSets: false,
             Reason: reason);

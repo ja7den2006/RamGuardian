@@ -8,16 +8,16 @@ namespace RamGuardian.Core.Engine;
 
 public sealed class WindowsMemoryCleanupExecutor
 {
-    private const int ManualMinimumPasses = 4;
-    private const int ManualMaximumPasses = 7;
-    private const long ManualContinueThresholdBytes = 16L * 1024L * 1024L;
-    private const ulong ManualContinueAvailableBytes = 2UL * 1024UL * 1024UL * 1024UL;
-    private const uint ManualContinueMemoryLoadPercent = 60;
+    private const int ManualMinimumPasses = 5;
+    private const int ManualMaximumPasses = 8;
+    private const long ManualContinueThresholdBytes = 8L * 1024L * 1024L;
+    private const ulong ManualContinueAvailableBytes = 2560UL * 1024UL * 1024UL;
+    private const uint ManualContinueMemoryLoadPercent = 54;
     private const int AutoMinimumPasses = 2;
-    private const int AutoMaximumPasses = 3;
-    private const long AutoContinueThresholdBytes = 24L * 1024L * 1024L;
-    private const ulong AutoContinueAvailableBytes = 1536UL * 1024UL * 1024UL;
-    private const uint AutoContinueMemoryLoadPercent = 66;
+    private const int AutoMaximumPasses = 4;
+    private const long AutoContinueThresholdBytes = 16L * 1024L * 1024L;
+    private const ulong AutoContinueAvailableBytes = 2UL * 1024UL * 1024UL * 1024UL;
+    private const uint AutoContinueMemoryLoadPercent = 62;
     private static readonly HashSet<string> ProtectedProcessNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "csrss",
@@ -53,8 +53,8 @@ public sealed class WindowsMemoryCleanupExecutor
                 continueThresholdBytes: ManualContinueThresholdBytes,
                 continueAvailableBytes: ManualContinueAvailableBytes,
                 continueMemoryLoadPercent: ManualContinueMemoryLoadPercent,
-                settleDelay: TimeSpan.FromMilliseconds(360),
-                retainSystemTrimPasses: 2,
+                settleDelay: TimeSpan.FromMilliseconds(320),
+                retainSystemTrimPasses: 3,
                 cancellationToken);
         }
 
@@ -104,6 +104,11 @@ public sealed class WindowsMemoryCleanupExecutor
             TryApplyMemoryListCommand(SystemMemoryListCommand.MemoryPurgeStandbyList, warnings);
         }
 
+        if (plan.FlushModifiedList)
+        {
+            TryApplyMemoryListCommand(SystemMemoryListCommand.MemoryFlushModifiedList, warnings);
+        }
+
         if (plan.TrimBackgroundWorkingSets)
         {
             trimmedProcessCount = TrimBackgroundWorkingSets(plan.ExcludedProcessId, cancellationToken, warnings);
@@ -112,6 +117,16 @@ public sealed class WindowsMemoryCleanupExecutor
         if (plan.TrimSystemWorkingSets)
         {
             TryApplyMemoryListCommand(SystemMemoryListCommand.MemoryEmptyWorkingSets, warnings);
+        }
+
+        if (plan.PurgeLowPriorityStandby && (plan.TrimBackgroundWorkingSets || plan.TrimSystemWorkingSets))
+        {
+            TryApplyMemoryListCommand(SystemMemoryListCommand.MemoryPurgeLowPriorityStandbyList, warnings);
+        }
+
+        if (plan.PurgeStandby && (plan.TrimBackgroundWorkingSets || plan.TrimSystemWorkingSets || plan.FlushModifiedList))
+        {
+            TryApplyMemoryListCommand(SystemMemoryListCommand.MemoryPurgeStandbyList, warnings);
         }
 
         var after = _telemetryReader.CaptureSnapshot();

@@ -30,17 +30,17 @@
     </shell:WindowChrome.WindowChrome>
 
     <Grid>
-        <Border Margin="8"
-                Padding="10"
+        <Border Margin="6"
+                Padding="7"
                 Background="{StaticResource CardBackgroundBrush}"
                 BorderBrush="{StaticResource CardBorderBrush}"
                 BorderThickness="1"
-                CornerRadius="18">
+                CornerRadius="14">
             <Border.Effect>
-                <DropShadowEffect BlurRadius="18"
+                <DropShadowEffect BlurRadius="12"
                                   ShadowDepth="0"
                                   Color="#A1000000"
-                                  Opacity="0.38" />
+                                  Opacity="0.30" />
             </Border.Effect>
 
             <Grid>
@@ -51,12 +51,20 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
+                <Border Grid.RowSpan="4"
+                        Margin="1"
+                        BorderBrush="{StaticResource InnerEdgeBrush}"
+                        BorderThickness="1"
+                        CornerRadius="13"
+                        Opacity="0.9"
+                        IsHitTestVisible="False" />
+
                 <Grid Grid.Row="0"
-                      Margin="0,0,0,8">
+                      Margin="0,0,0,4">
                     <TextBlock HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                FontFamily="Bahnschrift"
-                               FontSize="16"
+                               FontSize="12"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource PrimaryTextBrush}"
                                Text="RamGuardian" />
@@ -69,12 +77,12 @@
                 </Grid>
 
                 <Border Grid.Row="1"
-                        Margin="0,0,0,8"
-                        Padding="8"
+                        Margin="3,0,3,5"
+                        Padding="6"
                         Background="{StaticResource CardInsetBrush}"
                         BorderBrush="{StaticResource CardSoftBorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="14">
+                        CornerRadius="10">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -83,9 +91,9 @@
 
                         <StackPanel>
                             <TextBlock x:Name="UsageTextBlock"
-                                       Margin="0,0,0,5"
+                                       Margin="0,0,0,3"
                                        FontFamily="Segoe UI Semibold"
-                                       FontSize="9"
+                                       FontSize="8"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        Text="Current ram usage"
@@ -93,28 +101,28 @@
 
                             <TextBlock x:Name="UsageValueTextBlock"
                                        FontFamily="Segoe UI Semibold"
-                                       FontSize="12"
+                                       FontSize="10.5"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource PrimaryTextBrush}"
                                        Text="-- / --" />
                         </StackPanel>
 
                         <Border Grid.Column="1"
-                                MinWidth="42"
-                                Height="24"
-                                Margin="8,0,0,0"
-                                Padding="8,0"
+                                MinWidth="34"
+                                Height="18"
+                                Margin="6,0,0,0"
+                                Padding="5,0"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
                                 Background="{StaticResource UsageBadgeBrush}"
                                 BorderBrush="{StaticResource UsageBadgeBorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="12">
+                                CornerRadius="9">
                             <TextBlock x:Name="UsagePercentTextBlock"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        FontFamily="Segoe UI Semibold"
-                                       FontSize="10"
+                                       FontSize="8"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource PrimaryTextBrush}"
                                        Text="--%" />
@@ -123,19 +131,19 @@
                 </Border>
 
                 <Border Grid.Row="2"
-                        Margin="0,0,0,8"
+                        Margin="2,0,2,5"
                         Height="1"
-                        Background="#202632" />
+                        Background="#231015" />
 
                 <StackPanel Grid.Row="3">
                     <Button x:Name="CleanRamButton"
-                            Margin="0,0,0,6"
+                            Margin="0,0,0,4"
                             Style="{StaticResource StateButtonStyle}"
                             Click="OnCleanRamClicked"
                             Content="Clean Ram" />
 
                     <Button x:Name="AutoCleanButton"
-                            Margin="0,0,0,6"
+                            Margin="0,0,0,4"
                             Style="{StaticResource StateButtonStyle}"
                             Click="OnAutoCleanClicked"
                             Content="Auto-Clean Off" />
@@ -143,6 +151,7 @@
                     <Button x:Name="ExitButton"
                             Background="{StaticResource ButtonExitBrush}"
                             BorderBrush="#36404F"
+                            Margin="0,0,0,0"
                             Style="{StaticResource StateButtonStyle}"
                             Click="OnExitClicked"
                             Content="Stop and exit program" />

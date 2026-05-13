@@ -89,9 +89,9 @@ dotnet publish src\RamGuardian.App\RamGuardian.App.csproj -c Release -r win-x64 
 ## Release Package
 
 ```powershell
-.\scripts\Publish-Release.ps1 -Version 0.1.3
+.\scripts\Publish-Release.ps1 -Version 0.1.4
 ```
 
-This produces a local release zip at `artifacts\RamGuardian-0.1.3-win-x64.zip`.
+This produces a local release zip at `artifacts\RamGuardian-0.1.4-win-x64.zip` and refreshes the standalone root executable at `RamGuardian.exe`.
 
-Pushing a tag like `v0.1.3` triggers the GitHub Actions release job and publishes the same zip to GitHub Releases.
+Pushing a tag like `v0.1.4` triggers the GitHub Actions release job and publishes the same zip to GitHub Releases.

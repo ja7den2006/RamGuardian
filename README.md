@@ -8,7 +8,8 @@ The repository is in the first implementation stage.
 
 - Research completed for ExitLag-style RAM cleaning behavior and similar tools.
 - Solution scaffolded for a native Windows desktop app.
-- Core policy layer started so the cleanup rules are testable before the UI is wired to native memory calls.
+- Core policy layer is covered by tests.
+- First borderless tray UI shell is wired to the native telemetry and cleanup engine.
 
 ## Stack Choice
 
@@ -29,6 +30,7 @@ The app will intentionally separate manual cleanup from auto-clean behavior.
 - Auto-clean will be conservative and pressure-driven.
 - Auto-clean will avoid aggressive working-set trimming during active full-screen use whenever possible.
 - The app will minimize to tray on close, and fully exit from the tray menu.
+- The app currently requests administrator rights because the cleanup path uses privileged Windows memory APIs.
 
 ## Planned Layout
 

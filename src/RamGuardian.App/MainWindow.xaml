@@ -1,12 +1,95 @@
-﻿<Window x:Class="RamGuardian.App.MainWindow"
+<Window x:Class="RamGuardian.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:RamGuardian.App"
+        xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
-        Title="MainWindow" Height="450" Width="800">
-    <Grid>
+        Title="RamGuardian"
+        Width="392"
+        Height="316"
+        MinWidth="392"
+        MinHeight="316"
+        MaxWidth="392"
+        MaxHeight="316"
+        Background="{StaticResource AppBackgroundBrush}"
+        WindowStartupLocation="CenterScreen"
+        WindowStyle="None"
+        ResizeMode="NoResize"
+        ShowInTaskbar="True"
+        MouseLeftButtonDown="OnWindowMouseLeftButtonDown"
+        Closing="OnWindowClosing">
+    <shell:WindowChrome.WindowChrome>
+        <shell:WindowChrome CaptionHeight="0"
+                            CornerRadius="24"
+                            GlassFrameThickness="0"
+                            ResizeBorderThickness="6"
+                            UseAeroCaptionButtons="False" />
+    </shell:WindowChrome.WindowChrome>
 
+    <Grid>
+        <Border Margin="14"
+                Padding="22"
+                Background="{StaticResource CardBackgroundBrush}"
+                BorderBrush="{StaticResource CardBorderBrush}"
+                BorderThickness="1"
+                CornerRadius="26">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Row="0"
+                           Margin="0,0,0,8"
+                           HorizontalAlignment="Center"
+                           FontFamily="Bahnschrift"
+                           FontSize="20"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource PrimaryTextBrush}"
+                           Text="RamGuardian" />
+
+                <TextBlock x:Name="UsageTextBlock"
+                           Grid.Row="1"
+                           Margin="0,0,0,18"
+                           HorizontalAlignment="Center"
+                           TextAlignment="Center"
+                           TextWrapping="Wrap"
+                           FontSize="15"
+                           FontWeight="SemiBold"
+                           Foreground="{StaticResource SecondaryTextBrush}"
+                           Text="Current ram usage: --" />
+
+                <Border Grid.Row="2"
+                        Margin="22,0,22,18"
+                        Height="1"
+                        Background="#1EFFFFFF" />
+
+                <Button x:Name="CleanRamButton"
+                        Grid.Row="3"
+                        Margin="0,0,0,12"
+                        Style="{StaticResource StateButtonStyle}"
+                        Click="OnCleanRamClicked"
+                        Content="Clean Ram" />
+
+                <Button x:Name="AutoCleanButton"
+                        Grid.Row="4"
+                        Margin="0,0,0,12"
+                        Style="{StaticResource StateButtonStyle}"
+                        Click="OnAutoCleanClicked"
+                        Content="Auto-Clean Off" />
+
+                <Button x:Name="ExitButton"
+                        Grid.Row="5"
+                        Background="{StaticResource ButtonExitBrush}"
+                        Style="{StaticResource StateButtonStyle}"
+                        Click="OnExitClicked"
+                        Content="Stop and exit program" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>

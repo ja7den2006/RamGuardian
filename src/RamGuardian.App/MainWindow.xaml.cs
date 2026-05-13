@@ -14,6 +14,9 @@ namespace RamGuardian.App;
 
 public partial class MainWindow : Window, IDisposable
 {
+    private static readonly TimeSpan ForegroundPollInterval = TimeSpan.FromSeconds(2);
+    private static readonly TimeSpan BackgroundAutoPollInterval = TimeSpan.FromSeconds(3);
+    private static readonly TimeSpan BackgroundIdlePollInterval = TimeSpan.FromSeconds(8);
     private static readonly System.Windows.Media.Brush OffBrush = CreateBrush("#8F1F34");
     private static readonly System.Windows.Media.Brush OnBrush = CreateBrush("#1D7A47");
     private static readonly System.Windows.Media.Brush ExitBrush = CreateBrush("#701726");
@@ -22,6 +25,7 @@ public partial class MainWindow : Window, IDisposable
     private readonly CancellationTokenSource _shutdownCts = new();
     private readonly SemaphoreSlim _cleanupGate = new(1, 1);
     private readonly DispatcherTimer _pollTimer;
+    private readonly AppStateStore _stateStore;
     private readonly WindowsForegroundActivityDetector _foregroundDetector;
     private readonly WindowsMemoryCleanupExecutor _cleanupExecutor;
     private readonly WindowsMemoryTelemetryReader _telemetryReader;
@@ -33,10 +37,14 @@ public partial class MainWindow : Window, IDisposable
     private DateTimeOffset? _lastCleanupAt;
     private MemorySnapshot? _lastSnapshot;
     private DateTimeOffset? _pressureStartedAt;
+    private int _refreshInFlight;
 
     public MainWindow()
     {
         InitializeComponent();
+
+        _stateStore = new AppStateStore();
+        _autoCleanEnabled = _stateStore.Load().AutoCleanEnabled;
 
         _telemetryReader = new WindowsMemoryTelemetryReader();
         _cleanupExecutor = new WindowsMemoryCleanupExecutor(_telemetryReader);
@@ -53,7 +61,7 @@ public partial class MainWindow : Window, IDisposable
 
         _pollTimer = new DispatcherTimer(DispatcherPriority.Background)
         {
-            Interval = TimeSpan.FromSeconds(2),
+            Interval = ForegroundPollInterval,
         };
         _pollTimer.Tick += OnPollTimerTick;
 
@@ -89,6 +97,7 @@ public partial class MainWindow : Window, IDisposable
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        UpdateTimerInterval();
         _pollTimer.Start();
         _ = RefreshSnapshotAsync(runAutoClean: false);
     }
@@ -120,8 +129,10 @@ public partial class MainWindow : Window, IDisposable
     private void OnAutoCleanClicked(object sender, RoutedEventArgs e)
     {
         _autoCleanEnabled = !_autoCleanEnabled;
+        PersistState();
         UpdateVisualState();
         UpdateTrayText(_lastSnapshot);
+        UpdateTimerInterval();
     }
 
     private void OnExitClicked(object sender, RoutedEventArgs e)
@@ -189,6 +200,11 @@ public partial class MainWindow : Window, IDisposable
             return;
         }
 
+        if (Interlocked.Exchange(ref _refreshInFlight, 1) == 1)
+        {
+            return;
+        }
+
         try
         {
             var snapshot = _telemetryReader.CaptureSnapshot();
@@ -230,6 +246,10 @@ public partial class MainWindow : Window, IDisposable
         {
             ShowTelemetryError(ex);
         }
+        finally
+        {
+            Interlocked.Exchange(ref _refreshInFlight, 0);
+        }
     }
 
     private async Task ExecuteCleanupAsync(CleanupPlan plan)
@@ -248,6 +268,7 @@ public partial class MainWindow : Window, IDisposable
         {
             _isCleaning = true;
             UpdateVisualState();
+            UpdateTrayText(_lastSnapshot);
 
             var result = await Task.Run(
                 () => _cleanupExecutor.Execute(plan, _shutdownCts.Token),
@@ -269,6 +290,8 @@ public partial class MainWindow : Window, IDisposable
             _isCleaning = false;
             _cleanupGate.Release();
             UpdateVisualState();
+            UpdateTrayText(_lastSnapshot);
+            UpdateTimerInterval();
         }
     }
 
@@ -299,7 +322,11 @@ public partial class MainWindow : Window, IDisposable
             return;
         }
 
-        var state = _autoCleanEnabled ? "Auto On" : "Auto Off";
+        var state = _isCleaning
+            ? "Cleaning"
+            : _autoCleanEnabled
+                ? "Auto On"
+                : "Auto Off";
         var usagePart = snapshot is null ? "--" : $"{snapshot.MemoryLoadPercent}% RAM";
         _trayIcon.Text = TrimTrayText($"RamGuardian | {usagePart} | {state}");
     }
@@ -314,7 +341,7 @@ public partial class MainWindow : Window, IDisposable
     {
         CleanRamButton.Content = _isCleaning ? "Cleaning" : "Clean Ram";
         CleanRamButton.Background = _isCleaning ? OnBrush : OffBrush;
-        CleanRamButton.IsEnabled = !_isExitRequested;
+        CleanRamButton.IsEnabled = !_isCleaning && !_isExitRequested;
 
         AutoCleanButton.Content = _autoCleanEnabled ? "Auto-Clean On" : "Auto-Clean Off";
         AutoCleanButton.Background = _autoCleanEnabled ? OnBrush : OffBrush;
@@ -328,6 +355,7 @@ public partial class MainWindow : Window, IDisposable
     {
         ShowInTaskbar = false;
         Hide();
+        UpdateTimerInterval();
     }
 
     private void ShowFromTray()
@@ -337,13 +365,43 @@ public partial class MainWindow : Window, IDisposable
             return;
         }
 
-        Dispatcher.Invoke(() =>
+        void RestoreWindow()
         {
             ShowInTaskbar = true;
             Show();
             WindowState = WindowState.Normal;
             Activate();
-        });
+            UpdateTimerInterval();
+        }
+
+        if (Dispatcher.CheckAccess())
+        {
+            RestoreWindow();
+            return;
+        }
+
+        Dispatcher.Invoke(RestoreWindow);
+    }
+
+    private void PersistState()
+    {
+        _stateStore.Save(new AppState(_autoCleanEnabled));
+    }
+
+    private void UpdateTimerInterval()
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        var runningInBackground = !IsVisible || !ShowInTaskbar;
+
+        _pollTimer.Interval = runningInBackground
+            ? _autoCleanEnabled
+                ? BackgroundAutoPollInterval
+                : BackgroundIdlePollInterval
+            : ForegroundPollInterval;
     }
 
     private void ExitApplication()

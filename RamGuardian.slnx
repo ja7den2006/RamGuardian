@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/RamGuardian.App/RamGuardian.App.csproj" />
+    <Project Path="src/RamGuardian.Core/RamGuardian.Core.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/RamGuardian.Core.Tests/RamGuardian.Core.Tests.csproj" />
+  </Folder>
+</Solution>

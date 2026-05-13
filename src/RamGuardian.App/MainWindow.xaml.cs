@@ -25,6 +25,7 @@ public partial class MainWindow : Window, IDisposable
     private readonly CancellationTokenSource _shutdownCts = new();
     private readonly SemaphoreSlim _cleanupGate = new(1, 1);
     private readonly DispatcherTimer _pollTimer;
+    private readonly ActivityLogger _activityLogger;
     private readonly AppStateStore _stateStore;
     private readonly WindowsForegroundActivityDetector _foregroundDetector;
     private readonly WindowsMemoryCleanupExecutor _cleanupExecutor;
@@ -43,6 +44,7 @@ public partial class MainWindow : Window, IDisposable
     {
         InitializeComponent();
 
+        _activityLogger = new ActivityLogger();
         _stateStore = new AppStateStore();
         _autoCleanEnabled = _stateStore.Load().AutoCleanEnabled;
 
@@ -97,6 +99,7 @@ public partial class MainWindow : Window, IDisposable
 
     private void OnLoaded(object sender, RoutedEventArgs e)
     {
+        _activityLogger.Write($"Application started. Auto-clean restored as {(_autoCleanEnabled ? "on" : "off")}.");
         UpdateTimerInterval();
         _pollTimer.Start();
         _ = RefreshSnapshotAsync(runAutoClean: false);
@@ -130,6 +133,7 @@ public partial class MainWindow : Window, IDisposable
     {
         _autoCleanEnabled = !_autoCleanEnabled;
         PersistState();
+        _activityLogger.Write($"Auto-clean toggled {(_autoCleanEnabled ? "on" : "off")}.");
         UpdateVisualState();
         UpdateTrayText(_lastSnapshot);
         UpdateTimerInterval();
@@ -276,6 +280,7 @@ public partial class MainWindow : Window, IDisposable
 
             _lastCleanupAt = result.After.CapturedAt;
             _lastSnapshot = result.After;
+            _activityLogger.Write(FormatCleanupLogEntry(result));
             UpdateUsage(result.After);
         }
         catch (OperationCanceledException)
@@ -411,6 +416,7 @@ public partial class MainWindow : Window, IDisposable
             return;
         }
 
+        _activityLogger.Write("Application exit requested.");
         _isExitRequested = true;
         Close();
         System.Windows.Application.Current.Shutdown();
@@ -420,7 +426,18 @@ public partial class MainWindow : Window, IDisposable
     {
         UsageTextBlock.Text = "Current ram usage: unavailable";
         _trayIcon.Text = TrimTrayText("RamGuardian | telemetry unavailable");
+        _activityLogger.Write($"Telemetry error: {ex.GetType().Name}: {ex.Message}");
         System.Diagnostics.Debug.WriteLine(ex);
+    }
+
+    private static string FormatCleanupLogEntry(CleanupExecutionResult result)
+    {
+        var reclaimed = FormatSignedBytes(result.ReclaimedPhysicalBytes);
+        var warningSummary = result.Warnings.Count == 0
+            ? "no warnings"
+            : $"{result.Warnings.Count} warning(s)";
+
+        return $"{result.Plan.Mode} completed. Reclaimed {reclaimed}, trimmed {result.TrimmedProcessCount} process(es), reason: {result.Plan.Reason} ({warningSummary}).";
     }
 
     private static string FormatBytes(ulong bytes)
@@ -436,5 +453,15 @@ public partial class MainWindow : Window, IDisposable
         }
 
         return unitIndex == 0 ? $"{size:0} {units[unitIndex]}" : $"{size:0.0} {units[unitIndex]}";
+    }
+
+    private static string FormatSignedBytes(long bytes)
+    {
+        var magnitude = bytes < 0
+            ? unchecked((ulong)(-bytes))
+            : (ulong)bytes;
+
+        var formatted = FormatBytes(magnitude);
+        return bytes < 0 ? $"-{formatted}" : formatted;
     }
 }

@@ -31,6 +31,10 @@ public partial class MainWindow : Window, IDisposable
     private readonly WindowsMemoryCleanupExecutor _cleanupExecutor;
     private readonly WindowsMemoryTelemetryReader _telemetryReader;
     private readonly Forms.NotifyIcon _trayIcon;
+    private Forms.ToolStripMenuItem? _trayAutoCleanItem;
+    private Forms.ToolStripMenuItem? _trayCleanItem;
+    private Forms.ToolStripMenuItem? _trayExitItem;
+    private Forms.ToolStripMenuItem? _trayOpenItem;
     private bool _autoCleanEnabled;
     private bool _disposed;
     private bool _isCleaning;
@@ -112,31 +116,17 @@ public partial class MainWindow : Window, IDisposable
 
     private async void OnCleanRamClicked(object sender, RoutedEventArgs e)
     {
-        if (_isCleaning)
-        {
-            return;
-        }
-
-        try
-        {
-            var snapshot = _telemetryReader.CaptureSnapshot();
-            var plan = RamGuardianPolicy.CreateManualCleanPlan(snapshot, _foregroundDetector.Detect());
-            await ExecuteCleanupAsync(plan);
-        }
-        catch (Exception ex)
-        {
-            ShowTelemetryError(ex);
-        }
+        await StartManualCleanAsync();
     }
 
     private void OnAutoCleanClicked(object sender, RoutedEventArgs e)
     {
-        _autoCleanEnabled = !_autoCleanEnabled;
-        PersistState();
-        _activityLogger.Write($"Auto-clean toggled {(_autoCleanEnabled ? "on" : "off")}.");
-        UpdateVisualState();
-        UpdateTrayText(_lastSnapshot);
-        UpdateTimerInterval();
+        ToggleAutoClean();
+    }
+
+    private void OnHideToTrayClicked(object sender, RoutedEventArgs e)
+    {
+        HideToTray();
     }
 
     private void OnExitClicked(object sender, RoutedEventArgs e)
@@ -184,17 +174,45 @@ public partial class MainWindow : Window, IDisposable
     {
         var menu = new Forms.ContextMenuStrip();
 
-        var openItem = new Forms.ToolStripMenuItem("Open");
-        openItem.Click += (_, _) => ShowFromTray();
+        _trayOpenItem = new Forms.ToolStripMenuItem("Open");
+        _trayOpenItem.Click += (_, _) => ShowFromTray();
 
-        var exitItem = new Forms.ToolStripMenuItem("Exit");
-        exitItem.Click += (_, _) => Dispatcher.Invoke(ExitApplication);
+        _trayCleanItem = new Forms.ToolStripMenuItem("Clean Ram");
+        _trayCleanItem.Click += (_, _) => RunOnUiThread(() => _ = StartManualCleanAsync());
 
-        menu.Items.Add(openItem);
+        _trayAutoCleanItem = new Forms.ToolStripMenuItem("Auto-Clean Off");
+        _trayAutoCleanItem.Click += (_, _) => RunOnUiThread(ToggleAutoClean);
+
+        _trayExitItem = new Forms.ToolStripMenuItem("Exit");
+        _trayExitItem.Click += (_, _) => RunOnUiThread(ExitApplication);
+
+        menu.Items.Add(_trayOpenItem);
         menu.Items.Add(new Forms.ToolStripSeparator());
-        menu.Items.Add(exitItem);
+        menu.Items.Add(_trayCleanItem);
+        menu.Items.Add(_trayAutoCleanItem);
+        menu.Items.Add(new Forms.ToolStripSeparator());
+        menu.Items.Add(_trayExitItem);
 
         return menu;
+    }
+
+    private async Task StartManualCleanAsync()
+    {
+        if (_isCleaning || _disposed || _isExitRequested)
+        {
+            return;
+        }
+
+        try
+        {
+            var snapshot = _telemetryReader.CaptureSnapshot();
+            var plan = RamGuardianPolicy.CreateManualCleanPlan(snapshot, _foregroundDetector.Detect());
+            await ExecuteCleanupAsync(plan);
+        }
+        catch (Exception ex)
+        {
+            ShowTelemetryError(ex);
+        }
     }
 
     private async Task RefreshSnapshotAsync(bool runAutoClean)
@@ -354,6 +372,9 @@ public partial class MainWindow : Window, IDisposable
 
         ExitButton.Background = ExitBrush;
         ExitButton.IsEnabled = !_isCleaning;
+        HideToTrayButton.IsEnabled = !_isExitRequested;
+
+        UpdateTrayMenuState();
     }
 
     private void HideToTray()
@@ -388,6 +409,21 @@ public partial class MainWindow : Window, IDisposable
         Dispatcher.Invoke(RestoreWindow);
     }
 
+    private void ToggleAutoClean()
+    {
+        if (_isCleaning || _isExitRequested)
+        {
+            return;
+        }
+
+        _autoCleanEnabled = !_autoCleanEnabled;
+        PersistState();
+        _activityLogger.Write($"Auto-clean toggled {(_autoCleanEnabled ? "on" : "off")}.");
+        UpdateVisualState();
+        UpdateTrayText(_lastSnapshot);
+        UpdateTimerInterval();
+    }
+
     private void PersistState()
     {
         _stateStore.Save(new AppState(_autoCleanEnabled));
@@ -420,6 +456,31 @@ public partial class MainWindow : Window, IDisposable
         _isExitRequested = true;
         Close();
         System.Windows.Application.Current.Shutdown();
+    }
+
+    private void UpdateTrayMenuState()
+    {
+        if (_trayOpenItem is not null)
+        {
+            _trayOpenItem.Enabled = !_isExitRequested;
+        }
+
+        if (_trayCleanItem is not null)
+        {
+            _trayCleanItem.Text = _isCleaning ? "Cleaning..." : "Clean Ram";
+            _trayCleanItem.Enabled = !_isCleaning && !_isExitRequested;
+        }
+
+        if (_trayAutoCleanItem is not null)
+        {
+            _trayAutoCleanItem.Text = _autoCleanEnabled ? "Auto-Clean On" : "Auto-Clean Off";
+            _trayAutoCleanItem.Enabled = !_isCleaning && !_isExitRequested;
+        }
+
+        if (_trayExitItem is not null)
+        {
+            _trayExitItem.Enabled = !_isCleaning;
+        }
     }
 
     private void ShowTelemetryError(Exception ex)
@@ -463,5 +524,21 @@ public partial class MainWindow : Window, IDisposable
 
         var formatted = FormatBytes(magnitude);
         return bytes < 0 ? $"-{formatted}" : formatted;
+    }
+
+    private void RunOnUiThread(Action action)
+    {
+        if (_disposed)
+        {
+            return;
+        }
+
+        if (Dispatcher.CheckAccess())
+        {
+            action();
+            return;
+        }
+
+        _ = Dispatcher.InvokeAsync(action);
     }
 }

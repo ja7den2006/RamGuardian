@@ -44,14 +44,21 @@
                     <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
-                <TextBlock Grid.Row="0"
-                           Margin="0,0,0,8"
-                           HorizontalAlignment="Center"
-                           FontFamily="Bahnschrift"
-                           FontSize="20"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource PrimaryTextBrush}"
-                           Text="RamGuardian" />
+                <Grid Grid.Row="0"
+                      Margin="0,0,0,8">
+                    <TextBlock HorizontalAlignment="Center"
+                               FontFamily="Bahnschrift"
+                               FontSize="20"
+                               FontWeight="SemiBold"
+                               Foreground="{StaticResource PrimaryTextBrush}"
+                               Text="RamGuardian" />
+
+                    <Button x:Name="HideToTrayButton"
+                            Style="{StaticResource ChromeButtonStyle}"
+                            Click="OnHideToTrayClicked"
+                            ToolTip="Hide to tray"
+                            Content="×" />
+                </Grid>
 
                 <TextBlock x:Name="UsageTextBlock"
                            Grid.Row="1"

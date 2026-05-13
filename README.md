@@ -85,3 +85,13 @@ dotnet test RamGuardian.slnx --configuration Release
 ```powershell
 dotnet publish src\RamGuardian.App\RamGuardian.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true
 ```
+
+## Release Package
+
+```powershell
+.\scripts\Publish-Release.ps1 -Version 0.1.0
+```
+
+This produces a local release zip at `artifacts\RamGuardian-0.1.0-win-x64.zip`.
+
+Pushing a tag like `v0.1.0` triggers the GitHub Actions release job and publishes the same zip to GitHub Releases.

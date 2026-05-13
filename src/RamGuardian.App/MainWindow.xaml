@@ -7,16 +7,18 @@
         mc:Ignorable="d"
         Title="RamGuardian"
         Width="418"
-        Height="398"
+        Height="384"
         MinWidth="418"
-        MinHeight="398"
+        MinHeight="384"
         MaxWidth="418"
-        MaxHeight="398"
+        MaxHeight="384"
         Background="{StaticResource AppBackgroundBrush}"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
         ResizeMode="NoResize"
         ShowInTaskbar="True"
+        UseLayoutRounding="True"
+        SnapsToDevicePixels="True"
         MouseLeftButtonDown="OnWindowMouseLeftButtonDown"
         Closing="OnWindowClosing">
     <shell:WindowChrome.WindowChrome>
@@ -28,8 +30,8 @@
     </shell:WindowChrome.WindowChrome>
 
     <Grid>
-        <Border Margin="16"
-                Padding="18"
+        <Border Margin="15"
+                Padding="16"
                 Background="{StaticResource CardBackgroundBrush}"
                 BorderBrush="{StaticResource CardBorderBrush}"
                 BorderThickness="1"
@@ -46,11 +48,11 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="*" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0"
-                      Margin="0,0,0,16">
+                      Margin="0,0,0,14">
                     <TextBlock HorizontalAlignment="Center"
                                VerticalAlignment="Center"
                                FontFamily="Bahnschrift"
@@ -67,12 +69,12 @@
                 </Grid>
 
                 <Border Grid.Row="1"
-                        Margin="0,0,0,16"
-                        Padding="14"
+                        Margin="0,0,0,14"
+                        Padding="12"
                         Background="{StaticResource CardInsetBrush}"
                         BorderBrush="{StaticResource CardSoftBorderBrush}"
                         BorderThickness="1"
-                        CornerRadius="22">
+                        CornerRadius="20">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*" />
@@ -82,7 +84,7 @@
                         <StackPanel>
                             <TextBlock Margin="0,0,0,8"
                                        FontFamily="Segoe UI Semibold"
-                                       FontSize="11"
+                                       FontSize="10"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource MutedTextBrush}"
                                        Text="CURRENT RAM USAGE"
@@ -90,35 +92,35 @@
 
                             <TextBlock x:Name="UsageValueTextBlock"
                                        FontFamily="Segoe UI Semibold"
-                                       FontSize="20"
+                                       FontSize="18"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource PrimaryTextBrush}"
                                        Text="-- / --" />
 
                             <TextBlock x:Name="UsageTextBlock"
-                                       Margin="0,4,0,0"
+                                       Margin="0,3,0,0"
                                        FontFamily="Segoe UI"
-                                       FontSize="13"
+                                       FontSize="12"
                                        Foreground="{StaticResource SecondaryTextBrush}"
                                        Text="Current ram usage: unavailable" />
                         </StackPanel>
 
                         <Border Grid.Column="1"
-                                MinWidth="58"
-                                Height="34"
-                                Margin="14,2,0,0"
-                                Padding="12,0"
+                                MinWidth="54"
+                                Height="31"
+                                Margin="12,1,0,0"
+                                Padding="11,0"
                                 HorizontalAlignment="Right"
                                 VerticalAlignment="Top"
                                 Background="{StaticResource UsageBadgeBrush}"
                                 BorderBrush="{StaticResource UsageBadgeBorderBrush}"
                                 BorderThickness="1"
-                                CornerRadius="17">
+                                CornerRadius="15.5">
                             <TextBlock x:Name="UsagePercentTextBlock"
                                        HorizontalAlignment="Center"
                                        VerticalAlignment="Center"
                                        FontFamily="Segoe UI Semibold"
-                                       FontSize="13"
+                                       FontSize="12"
                                        FontWeight="SemiBold"
                                        Foreground="{StaticResource PrimaryTextBrush}"
                                        Text="--%" />
@@ -127,19 +129,19 @@
                 </Border>
 
                 <Border Grid.Row="2"
-                        Margin="0,0,0,18"
+                        Margin="0,0,0,14"
                         Height="1"
                         Background="#202632" />
 
                 <StackPanel Grid.Row="3">
                     <Button x:Name="CleanRamButton"
-                            Margin="0,0,0,12"
+                            Margin="0,0,0,10"
                             Style="{StaticResource StateButtonStyle}"
                             Click="OnCleanRamClicked"
                             Content="Clean Ram" />
 
                     <Button x:Name="AutoCleanButton"
-                            Margin="0,0,0,12"
+                            Margin="0,0,0,10"
                             Style="{StaticResource StateButtonStyle}"
                             Click="OnAutoCleanClicked"
                             Content="Auto-Clean Off" />

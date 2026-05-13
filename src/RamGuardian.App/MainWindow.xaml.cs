@@ -17,6 +17,7 @@ public partial class MainWindow : Window, IDisposable
     private static readonly TimeSpan ForegroundPollInterval = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan BackgroundAutoPollInterval = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan BackgroundIdlePollInterval = TimeSpan.FromSeconds(8);
+    private static readonly TimeSpan ManualCleanupSettleDelay = TimeSpan.FromMilliseconds(450);
     private static readonly System.Windows.Media.Brush OffBrush = CreateBrush("#7D2238");
     private static readonly System.Windows.Media.Brush OnBrush = CreateBrush("#1F7A4D");
     private static readonly System.Windows.Media.Brush ExitBrush = CreateBrush("#252C36");
@@ -296,10 +297,15 @@ public partial class MainWindow : Window, IDisposable
                 () => _cleanupExecutor.Execute(plan, _shutdownCts.Token),
                 _shutdownCts.Token);
 
-            _lastCleanupAt = result.After.CapturedAt;
-            _lastSnapshot = result.After;
+            if (plan.Mode == CleanupMode.ManualBalanced)
+            {
+                await Task.Delay(ManualCleanupSettleDelay, _shutdownCts.Token);
+            }
+
+            _lastSnapshot = _telemetryReader.CaptureSnapshot();
+            _lastCleanupAt = _lastSnapshot.CapturedAt;
             _activityLogger.Write(FormatCleanupLogEntry(result));
-            UpdateUsage(result.After);
+            UpdateUsage(_lastSnapshot);
         }
         catch (OperationCanceledException)
         {
@@ -501,8 +507,11 @@ public partial class MainWindow : Window, IDisposable
         var warningSummary = result.Warnings.Count == 0
             ? "no warnings"
             : $"{result.Warnings.Count} warning(s)";
+        var passSummary = result.PassCount == 1
+            ? "1 pass"
+            : $"{result.PassCount} passes";
 
-        return $"{result.Plan.Mode} completed. Reclaimed {reclaimed}, trimmed {result.TrimmedProcessCount} process(es), reason: {result.Plan.Reason} ({warningSummary}).";
+        return $"{result.Plan.Mode} completed in {passSummary}. Reclaimed {reclaimed}, trimmed {result.TrimmedProcessCount} process(es), reason: {result.Plan.Reason} ({warningSummary}).";
     }
 
     private static string FormatBytes(ulong bytes)

@@ -9,4 +9,20 @@ public sealed record CleanupExecutionResult(
     MemorySnapshot After,
     long ReclaimedPhysicalBytes,
     int TrimmedProcessCount,
-    IReadOnlyList<string> Warnings);
+    IReadOnlyList<string> Warnings,
+    int PassCount = 1)
+{
+    public CleanupExecutionResult Merge(CleanupExecutionResult next)
+    {
+        ArgumentNullException.ThrowIfNull(next);
+
+        return this with
+        {
+            After = next.After,
+            ReclaimedPhysicalBytes = unchecked((long)Before.UsedPhysicalBytes - (long)next.After.UsedPhysicalBytes),
+            TrimmedProcessCount = TrimmedProcessCount + next.TrimmedProcessCount,
+            Warnings = [.. Warnings, .. next.Warnings],
+            PassCount = PassCount + next.PassCount,
+        };
+    }
+}

@@ -29,6 +29,10 @@ dotnet publish $projectPath `
     -p:DebugType=None `
     -p:DebugSymbols=false
 
+if ($LASTEXITCODE -ne 0) {
+    throw "dotnet publish failed with exit code $LASTEXITCODE."
+}
+
 New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 Copy-Item -Path (Join-Path $publishDir "*") -Destination $stageDir -Recurse -Force
 Copy-Item -LiteralPath (Join-Path $repoRoot "README.md") -Destination (Join-Path $stageDir "README.md")

@@ -1,4 +1,5 @@
 using RamGuardian.Core.Cleaning;
+using RamGuardian.Core.Engine;
 using RamGuardian.Core.Policy;
 using RamGuardian.Core.Telemetry;
 
@@ -100,6 +101,15 @@ public sealed class RamGuardianPolicyTests
             new ForegroundActivityContext(false, "explorer.exe"));
 
         Assert.True(plan.TrimSystemWorkingSets);
+    }
+
+    [Fact]
+    public void WindowsForegroundActivityDetector_Detect_DoesNotThrow()
+    {
+        var detector = new WindowsForegroundActivityDetector();
+        var exception = Record.Exception(() => detector.Detect());
+
+        Assert.Null(exception);
     }
 
     private static MemorySnapshot CreateSnapshot(

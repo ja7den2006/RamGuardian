@@ -17,9 +17,9 @@ public partial class MainWindow : Window, IDisposable
     private static readonly TimeSpan ForegroundPollInterval = TimeSpan.FromSeconds(2);
     private static readonly TimeSpan BackgroundAutoPollInterval = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan BackgroundIdlePollInterval = TimeSpan.FromSeconds(8);
-    private static readonly System.Windows.Media.Brush OffBrush = CreateBrush("#8F1F34");
-    private static readonly System.Windows.Media.Brush OnBrush = CreateBrush("#1D7A47");
-    private static readonly System.Windows.Media.Brush ExitBrush = CreateBrush("#701726");
+    private static readonly System.Windows.Media.Brush OffBrush = CreateBrush("#7D2238");
+    private static readonly System.Windows.Media.Brush OnBrush = CreateBrush("#1F7A4D");
+    private static readonly System.Windows.Media.Brush ExitBrush = CreateBrush("#252C36");
     private static readonly AutoCleanSettings AutoCleanSettings = AutoCleanSettings.Default;
 
     private readonly CancellationTokenSource _shutdownCts = new();
@@ -334,7 +334,9 @@ public partial class MainWindow : Window, IDisposable
         var used = FormatBytes(snapshot.UsedPhysicalBytes);
         var total = FormatBytes(snapshot.TotalPhysicalBytes);
 
-        UsageTextBlock.Text = $"Current ram usage: {used} / {total} ({snapshot.MemoryLoadPercent}%)";
+        UsageValueTextBlock.Text = $"{used} / {total}";
+        UsageTextBlock.Text = $"Current ram usage: {used} of {total}";
+        UsagePercentTextBlock.Text = $"{snapshot.MemoryLoadPercent}%";
         UpdateTrayText(snapshot);
     }
 
@@ -485,7 +487,9 @@ public partial class MainWindow : Window, IDisposable
 
     private void ShowTelemetryError(Exception ex)
     {
+        UsageValueTextBlock.Text = "Unavailable";
         UsageTextBlock.Text = "Current ram usage: unavailable";
+        UsagePercentTextBlock.Text = "--%";
         _trayIcon.Text = TrimTrayText("RamGuardian | telemetry unavailable");
         _activityLogger.Write($"Telemetry error: {ex.GetType().Name}: {ex.Message}");
         System.Diagnostics.Debug.WriteLine(ex);

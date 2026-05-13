@@ -26,7 +26,7 @@ internal static partial class NativeMethods
     [LibraryImport("user32.dll")]
     public static partial nint MonitorFromWindow(nint windowHandle, uint flags);
 
-    [LibraryImport("user32.dll", SetLastError = true)]
+    [LibraryImport("user32.dll", EntryPoint = "GetMonitorInfoW", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool GetMonitorInfo(nint monitorHandle, ref MonitorInfo monitorInfo);
 

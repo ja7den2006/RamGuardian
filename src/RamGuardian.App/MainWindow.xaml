@@ -6,12 +6,12 @@
         xmlns:shell="clr-namespace:System.Windows.Shell;assembly=PresentationFramework"
         mc:Ignorable="d"
         Title="RamGuardian"
-        Width="392"
-        Height="316"
-        MinWidth="392"
-        MinHeight="316"
-        MaxWidth="392"
-        MaxHeight="316"
+        Width="418"
+        Height="398"
+        MinWidth="418"
+        MinHeight="398"
+        MaxWidth="418"
+        MaxHeight="398"
         Background="{StaticResource AppBackgroundBrush}"
         WindowStartupLocation="CenterScreen"
         WindowStyle="None"
@@ -28,27 +28,33 @@
     </shell:WindowChrome.WindowChrome>
 
     <Grid>
-        <Border Margin="14"
-                Padding="22"
+        <Border Margin="16"
+                Padding="18"
                 Background="{StaticResource CardBackgroundBrush}"
                 BorderBrush="{StaticResource CardBorderBrush}"
                 BorderThickness="1"
-                CornerRadius="26">
+                CornerRadius="30">
+            <Border.Effect>
+                <DropShadowEffect BlurRadius="28"
+                                  ShadowDepth="0"
+                                  Color="#A1000000"
+                                  Opacity="0.45" />
+            </Border.Effect>
+
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
-                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="*" />
                 </Grid.RowDefinitions>
 
                 <Grid Grid.Row="0"
-                      Margin="0,0,0,8">
+                      Margin="0,0,0,16">
                     <TextBlock HorizontalAlignment="Center"
+                               VerticalAlignment="Center"
                                FontFamily="Bahnschrift"
-                               FontSize="20"
+                               FontSize="21"
                                FontWeight="SemiBold"
                                Foreground="{StaticResource PrimaryTextBrush}"
                                Text="RamGuardian" />
@@ -60,42 +66,91 @@
                             Content="×" />
                 </Grid>
 
-                <TextBlock x:Name="UsageTextBlock"
-                           Grid.Row="1"
-                           Margin="0,0,0,18"
-                           HorizontalAlignment="Center"
-                           TextAlignment="Center"
-                           TextWrapping="Wrap"
-                           FontSize="15"
-                           FontWeight="SemiBold"
-                           Foreground="{StaticResource SecondaryTextBrush}"
-                           Text="Current ram usage: --" />
+                <Border Grid.Row="1"
+                        Margin="0,0,0,16"
+                        Padding="14"
+                        Background="{StaticResource CardInsetBrush}"
+                        BorderBrush="{StaticResource CardSoftBorderBrush}"
+                        BorderThickness="1"
+                        CornerRadius="22">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <StackPanel>
+                            <TextBlock Margin="0,0,0,8"
+                                       FontFamily="Segoe UI Semibold"
+                                       FontSize="11"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource MutedTextBrush}"
+                                       Text="CURRENT RAM USAGE"
+                                       TextOptions.TextFormattingMode="Display" />
+
+                            <TextBlock x:Name="UsageValueTextBlock"
+                                       FontFamily="Segoe UI Semibold"
+                                       FontSize="20"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrimaryTextBrush}"
+                                       Text="-- / --" />
+
+                            <TextBlock x:Name="UsageTextBlock"
+                                       Margin="0,4,0,0"
+                                       FontFamily="Segoe UI"
+                                       FontSize="13"
+                                       Foreground="{StaticResource SecondaryTextBrush}"
+                                       Text="Current ram usage: unavailable" />
+                        </StackPanel>
+
+                        <Border Grid.Column="1"
+                                MinWidth="58"
+                                Height="34"
+                                Margin="14,2,0,0"
+                                Padding="12,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Top"
+                                Background="{StaticResource UsageBadgeBrush}"
+                                BorderBrush="{StaticResource UsageBadgeBorderBrush}"
+                                BorderThickness="1"
+                                CornerRadius="17">
+                            <TextBlock x:Name="UsagePercentTextBlock"
+                                       HorizontalAlignment="Center"
+                                       VerticalAlignment="Center"
+                                       FontFamily="Segoe UI Semibold"
+                                       FontSize="13"
+                                       FontWeight="SemiBold"
+                                       Foreground="{StaticResource PrimaryTextBrush}"
+                                       Text="--%" />
+                        </Border>
+                    </Grid>
+                </Border>
 
                 <Border Grid.Row="2"
-                        Margin="22,0,22,18"
+                        Margin="0,0,0,18"
                         Height="1"
-                        Background="#1EFFFFFF" />
+                        Background="#202632" />
 
-                <Button x:Name="CleanRamButton"
-                        Grid.Row="3"
-                        Margin="0,0,0,12"
-                        Style="{StaticResource StateButtonStyle}"
-                        Click="OnCleanRamClicked"
-                        Content="Clean Ram" />
+                <StackPanel Grid.Row="3">
+                    <Button x:Name="CleanRamButton"
+                            Margin="0,0,0,12"
+                            Style="{StaticResource StateButtonStyle}"
+                            Click="OnCleanRamClicked"
+                            Content="Clean Ram" />
 
-                <Button x:Name="AutoCleanButton"
-                        Grid.Row="4"
-                        Margin="0,0,0,12"
-                        Style="{StaticResource StateButtonStyle}"
-                        Click="OnAutoCleanClicked"
-                        Content="Auto-Clean Off" />
+                    <Button x:Name="AutoCleanButton"
+                            Margin="0,0,0,12"
+                            Style="{StaticResource StateButtonStyle}"
+                            Click="OnAutoCleanClicked"
+                            Content="Auto-Clean Off" />
 
-                <Button x:Name="ExitButton"
-                        Grid.Row="5"
-                        Background="{StaticResource ButtonExitBrush}"
-                        Style="{StaticResource StateButtonStyle}"
-                        Click="OnExitClicked"
-                        Content="Stop and exit program" />
+                    <Button x:Name="ExitButton"
+                            Background="{StaticResource ButtonExitBrush}"
+                            BorderBrush="#36404F"
+                            Style="{StaticResource StateButtonStyle}"
+                            Click="OnExitClicked"
+                            Content="Stop and exit program" />
+                </StackPanel>
             </Grid>
         </Border>
     </Grid>

@@ -8,11 +8,16 @@ namespace RamGuardian.Core.Engine;
 
 public sealed class WindowsMemoryCleanupExecutor
 {
-    private const int ManualMinimumPasses = 2;
-    private const int ManualMaximumPasses = 4;
-    private const long ManualContinueThresholdBytes = 48L * 1024L * 1024L;
-    private const ulong ManualContinueAvailableBytes = 1024UL * 1024UL * 1024UL;
-    private const uint ManualContinueMemoryLoadPercent = 82;
+    private const int ManualMinimumPasses = 4;
+    private const int ManualMaximumPasses = 7;
+    private const long ManualContinueThresholdBytes = 16L * 1024L * 1024L;
+    private const ulong ManualContinueAvailableBytes = 2UL * 1024UL * 1024UL * 1024UL;
+    private const uint ManualContinueMemoryLoadPercent = 60;
+    private const int AutoMinimumPasses = 2;
+    private const int AutoMaximumPasses = 3;
+    private const long AutoContinueThresholdBytes = 24L * 1024L * 1024L;
+    private const ulong AutoContinueAvailableBytes = 1536UL * 1024UL * 1024UL;
+    private const uint AutoContinueMemoryLoadPercent = 66;
     private static readonly HashSet<string> ProtectedProcessNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "csrss",
@@ -31,7 +36,7 @@ public sealed class WindowsMemoryCleanupExecutor
 
     public WindowsMemoryCleanupExecutor(
         WindowsMemoryTelemetryReader telemetryReader,
-        long minimumProcessWorkingSetBytes = 64L * 1024L * 1024L)
+        long minimumProcessWorkingSetBytes = 32L * 1024L * 1024L)
     {
         _telemetryReader = telemetryReader;
         _minimumProcessWorkingSetBytes = minimumProcessWorkingSetBytes;
@@ -39,9 +44,35 @@ public sealed class WindowsMemoryCleanupExecutor
 
     public CleanupExecutionResult Execute(CleanupPlan plan, CancellationToken cancellationToken = default)
     {
-        return plan.Mode == CleanupMode.ManualBalanced
-            ? ExecuteManualCleanupSequence(plan, cancellationToken)
-            : ExecuteSinglePass(plan, cancellationToken);
+        if (plan.Mode == CleanupMode.ManualBalanced)
+        {
+            return ExecuteMultiPassCleanupSequence(
+                plan,
+                minimumPasses: ManualMinimumPasses,
+                maximumPasses: ManualMaximumPasses,
+                continueThresholdBytes: ManualContinueThresholdBytes,
+                continueAvailableBytes: ManualContinueAvailableBytes,
+                continueMemoryLoadPercent: ManualContinueMemoryLoadPercent,
+                settleDelay: TimeSpan.FromMilliseconds(360),
+                retainSystemTrimPasses: 2,
+                cancellationToken);
+        }
+
+        if (plan.Mode == CleanupMode.AutoStandby && plan.TrimBackgroundWorkingSets)
+        {
+            return ExecuteMultiPassCleanupSequence(
+                plan,
+                minimumPasses: AutoMinimumPasses,
+                maximumPasses: AutoMaximumPasses,
+                continueThresholdBytes: AutoContinueThresholdBytes,
+                continueAvailableBytes: AutoContinueAvailableBytes,
+                continueMemoryLoadPercent: AutoContinueMemoryLoadPercent,
+                settleDelay: TimeSpan.FromMilliseconds(260),
+                retainSystemTrimPasses: 1,
+                cancellationToken);
+        }
+
+        return ExecuteSinglePass(plan, cancellationToken);
     }
 
     private CleanupExecutionResult ExecuteSinglePass(CleanupPlan plan, CancellationToken cancellationToken)
@@ -75,7 +106,7 @@ public sealed class WindowsMemoryCleanupExecutor
 
         if (plan.TrimBackgroundWorkingSets)
         {
-            trimmedProcessCount = TrimBackgroundWorkingSets(cancellationToken, warnings);
+            trimmedProcessCount = TrimBackgroundWorkingSets(plan.ExcludedProcessId, cancellationToken, warnings);
         }
 
         if (plan.TrimSystemWorkingSets)
@@ -96,17 +127,27 @@ public sealed class WindowsMemoryCleanupExecutor
             PassCount: 1);
     }
 
-    private CleanupExecutionResult ExecuteManualCleanupSequence(CleanupPlan plan, CancellationToken cancellationToken)
+    private CleanupExecutionResult ExecuteMultiPassCleanupSequence(
+        CleanupPlan plan,
+        int minimumPasses,
+        int maximumPasses,
+        long continueThresholdBytes,
+        ulong continueAvailableBytes,
+        uint continueMemoryLoadPercent,
+        TimeSpan settleDelay,
+        int retainSystemTrimPasses,
+        CancellationToken cancellationToken)
     {
         CleanupExecutionResult? aggregate = null;
 
-        for (var passIndex = 0; passIndex < ManualMaximumPasses; passIndex += 1)
+        for (var passIndex = 0; passIndex < maximumPasses; passIndex += 1)
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var passPlan = passIndex == 0
-                ? plan
-                : plan with { TrimSystemWorkingSets = false };
+            var passPlan = plan with
+            {
+                TrimSystemWorkingSets = plan.TrimSystemWorkingSets && passIndex < retainSystemTrimPasses,
+            };
 
             var passResult = ExecuteSinglePass(passPlan, cancellationToken);
             aggregate = aggregate is null
@@ -114,39 +155,52 @@ public sealed class WindowsMemoryCleanupExecutor
                 : aggregate.Merge(passResult);
 
             var completedPasses = passIndex + 1;
-            if (!ShouldContinueManualCleanup(aggregate, passResult, completedPasses))
+            if (!ShouldContinueCleanup(
+                    aggregate,
+                    passResult,
+                    completedPasses,
+                    minimumPasses,
+                    maximumPasses,
+                    continueThresholdBytes,
+                    continueAvailableBytes,
+                    continueMemoryLoadPercent))
             {
                 break;
             }
 
-            Thread.Sleep(TimeSpan.FromMilliseconds(325));
+            Thread.Sleep(settleDelay);
         }
 
         return aggregate ?? ExecuteSinglePass(plan, cancellationToken);
     }
 
-    private static bool ShouldContinueManualCleanup(
+    private static bool ShouldContinueCleanup(
         CleanupExecutionResult aggregate,
         CleanupExecutionResult passResult,
-        int completedPasses)
+        int completedPasses,
+        int minimumPasses,
+        int maximumPasses,
+        long continueThresholdBytes,
+        ulong continueAvailableBytes,
+        uint continueMemoryLoadPercent)
     {
-        if (completedPasses < ManualMinimumPasses)
+        if (completedPasses < minimumPasses)
         {
             return true;
         }
 
-        if (completedPasses >= ManualMaximumPasses)
+        if (completedPasses >= maximumPasses)
         {
             return false;
         }
 
-        if (passResult.ReclaimedPhysicalBytes >= ManualContinueThresholdBytes)
+        if (passResult.ReclaimedPhysicalBytes >= continueThresholdBytes)
         {
             return true;
         }
 
-        return aggregate.After.MemoryLoadPercent >= ManualContinueMemoryLoadPercent ||
-               aggregate.After.AvailablePhysicalBytes <= ManualContinueAvailableBytes;
+        return aggregate.After.MemoryLoadPercent >= continueMemoryLoadPercent ||
+               aggregate.After.AvailablePhysicalBytes <= continueAvailableBytes;
     }
 
     private static void TryApplyMemoryListCommand(SystemMemoryListCommand command, ICollection<string> warnings)
@@ -162,7 +216,7 @@ public sealed class WindowsMemoryCleanupExecutor
         }
     }
 
-    private int TrimBackgroundWorkingSets(CancellationToken cancellationToken, ICollection<string> warnings)
+    private int TrimBackgroundWorkingSets(int? excludedProcessId, CancellationToken cancellationToken, ICollection<string> warnings)
     {
         using var currentProcess = Process.GetCurrentProcess();
         var currentProcessId = currentProcess.Id;
@@ -175,7 +229,7 @@ public sealed class WindowsMemoryCleanupExecutor
 
             using (process)
             {
-                if (!ShouldTrim(process, currentProcessId, currentSessionId))
+                if (!ShouldTrim(process, currentProcessId, currentSessionId, excludedProcessId))
                 {
                     continue;
                 }
@@ -211,11 +265,16 @@ public sealed class WindowsMemoryCleanupExecutor
         return trimmed;
     }
 
-    private bool ShouldTrim(Process process, int currentProcessId, int currentSessionId)
+    private bool ShouldTrim(Process process, int currentProcessId, int currentSessionId, int? excludedProcessId)
     {
         try
         {
             if (process.Id == currentProcessId || process.Id <= 4)
+            {
+                return false;
+            }
+
+            if (excludedProcessId.HasValue && process.Id == excludedProcessId.Value)
             {
                 return false;
             }
@@ -226,11 +285,6 @@ public sealed class WindowsMemoryCleanupExecutor
             }
 
             if (ProtectedProcessNames.Contains(process.ProcessName))
-            {
-                return false;
-            }
-
-            if (process.MainWindowHandle != nint.Zero)
             {
                 return false;
             }

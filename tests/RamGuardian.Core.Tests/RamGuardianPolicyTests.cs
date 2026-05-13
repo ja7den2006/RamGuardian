@@ -32,7 +32,7 @@ public sealed class RamGuardianPolicyTests
     {
         var snapshot = CreateSnapshot(
             availablePhysicalBytes: 700UL * 1024UL * 1024UL,
-            memoryLoadPercent: 84,
+            memoryLoadPercent: 80,
             lowMemoryResourceSignaled: false);
 
         var context = new AutoCleanContext(
@@ -67,7 +67,9 @@ public sealed class RamGuardianPolicyTests
 
         Assert.Equal(CleanupMode.AutoStandby, plan.Mode);
         Assert.True(plan.PurgeStandby);
-        Assert.False(plan.PurgeLowPriorityStandby);
+        Assert.True(plan.PurgeLowPriorityStandby);
+        Assert.True(plan.TrimBackgroundWorkingSets);
+        Assert.False(plan.TrimSystemWorkingSets);
     }
 
     [Fact]

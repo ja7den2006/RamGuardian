@@ -6,7 +6,8 @@ public sealed record CleanupPlan(
     bool PurgeStandby,
     bool TrimBackgroundWorkingSets,
     bool TrimSystemWorkingSets,
-    string Reason)
+    string Reason,
+    int? ExcludedProcessId = null)
 {
     public static CleanupPlan None(string reason) =>
         new(

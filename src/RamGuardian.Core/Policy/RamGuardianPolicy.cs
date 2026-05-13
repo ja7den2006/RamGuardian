@@ -29,7 +29,8 @@ public static class RamGuardianPolicy
 
         var physicalPressure = snapshot.AvailablePhysicalBytes <= minimumAvailableBytes;
         var commitPressure = snapshot.UsedCommitRatio >= settings.CommitPressureRatio;
-        var underPressure = snapshot.LowMemoryResourceSignaled || physicalPressure || commitPressure;
+        var maintenancePressure = snapshot.MemoryLoadPercent >= settings.MaintenanceMemoryLoadPercent;
+        var underPressure = snapshot.LowMemoryResourceSignaled || physicalPressure || commitPressure || maintenancePressure;
 
         if (!underPressure)
         {
@@ -46,6 +47,10 @@ public static class RamGuardianPolicy
             snapshot.LowMemoryResourceSignaled ||
             snapshot.AvailablePhysicalBytes <= settings.CriticalAvailableBytes ||
             snapshot.MemoryLoadPercent >= settings.CriticalMemoryLoadPercent;
+        var aggressiveAutoPressure =
+            criticalPressure ||
+            snapshot.MemoryLoadPercent >= settings.AggressiveAutoMemoryLoadPercent ||
+            snapshot.AvailablePhysicalBytes <= minimumAvailableBytes;
 
         if (context.Foreground.IsFullscreenInteractive && !criticalPressure)
         {
@@ -55,18 +60,22 @@ public static class RamGuardianPolicy
                 PurgeStandby: false,
                 TrimBackgroundWorkingSets: false,
                 TrimSystemWorkingSets: false,
+                ExcludedProcessId: context.Foreground.ProcessId,
                 Reason: "Fullscreen workload detected, using the lightest auto-clean profile.");
         }
 
         return new CleanupPlan(
             CleanupMode.AutoStandby,
-            PurgeLowPriorityStandby: false,
+            PurgeLowPriorityStandby: aggressiveAutoPressure,
             PurgeStandby: true,
-            TrimBackgroundWorkingSets: false,
-            TrimSystemWorkingSets: false,
+            TrimBackgroundWorkingSets: aggressiveAutoPressure,
+            TrimSystemWorkingSets: criticalPressure && !context.Foreground.IsFullscreenInteractive,
+            ExcludedProcessId: context.Foreground.ProcessId,
             Reason: criticalPressure
-                ? "Critical memory pressure detected, using standard standby cleanup."
-                : "Sustained memory pressure detected, using standard standby cleanup.");
+                ? "Critical memory pressure detected, using aggressive auto-clean."
+                : aggressiveAutoPressure
+                    ? "Sustained memory pressure detected, using aggressive auto-clean."
+                    : "Maintenance cleanup triggered, using standby cleanup.");
     }
 
     public static CleanupPlan CreateManualCleanPlan(
@@ -78,16 +87,19 @@ public static class RamGuardianPolicy
             snapshot.MemoryLoadPercent >= 95 ||
             snapshot.AvailablePhysicalBytes <= 256UL * 1024UL * 1024UL;
 
-        var trimSystemWorkingSets = severePressure && !foreground.IsFullscreenInteractive;
+        var trimSystemWorkingSets = !foreground.IsFullscreenInteractive;
 
         return new CleanupPlan(
             CleanupMode.ManualBalanced,
-            PurgeLowPriorityStandby: false,
+            PurgeLowPriorityStandby: true,
             PurgeStandby: true,
             TrimBackgroundWorkingSets: true,
             TrimSystemWorkingSets: trimSystemWorkingSets,
+            ExcludedProcessId: foreground.ProcessId,
             Reason: trimSystemWorkingSets
-                ? "Manual clean escalated because memory pressure is severe."
+                ? severePressure
+                    ? "Manual clean escalated because memory pressure is severe."
+                    : "Manual clean will run an aggressive multi-pass trim."
                 : "Manual clean will purge standby memory and trim background working sets.");
     }
 }

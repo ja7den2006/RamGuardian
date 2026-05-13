@@ -341,7 +341,7 @@ public partial class MainWindow : Window, IDisposable
         var total = FormatBytes(snapshot.TotalPhysicalBytes);
 
         UsageValueTextBlock.Text = $"{used} / {total}";
-        UsageTextBlock.Text = $"Current ram usage: {used} of {total}";
+        UsageTextBlock.Text = "Current ram usage";
         UsagePercentTextBlock.Text = $"{snapshot.MemoryLoadPercent}%";
         UpdateTrayText(snapshot);
     }
@@ -494,7 +494,7 @@ public partial class MainWindow : Window, IDisposable
     private void ShowTelemetryError(Exception ex)
     {
         UsageValueTextBlock.Text = "Unavailable";
-        UsageTextBlock.Text = "Current ram usage: unavailable";
+        UsageTextBlock.Text = "Ram usage unavailable";
         UsagePercentTextBlock.Text = "--%";
         _trayIcon.Text = TrimTrayText("RamGuardian | telemetry unavailable");
         _activityLogger.Write($"Telemetry error: {ex.GetType().Name}: {ex.Message}");

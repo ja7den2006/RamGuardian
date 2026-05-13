@@ -70,7 +70,7 @@ public sealed class WindowsForegroundActivityDetector
         try
         {
             using var process = Process.GetProcessById(processId);
-            return new ForegroundActivityContext(isFullscreen, process.ProcessName);
+            return new ForegroundActivityContext(isFullscreen, process.ProcessName, processId);
         }
         catch
         {

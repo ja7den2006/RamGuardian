@@ -1,3 +1,7 @@
+<p align="center">
+  <img width="407" height="415" alt="image" src="https://github.com/user-attachments/assets/5e383145-e56c-4667-ab91-54a17788f340" />
+</p>
+
 # RamGuardian
 
 RamGuardian is a small Windows RAM utility with two modes:
